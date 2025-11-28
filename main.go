@@ -3,22 +3,18 @@ package main
 import (
 	"log"
 	"net/http"
+
+	"github.com/Reece-Reklai/go_serve/internal"
 )
 
-// type fileHandler struct {
-// }
-//
-// func (fileHandler) ServeHTTP(http.ResponseWriter, *http.Request) {
-//
-// }
-
 func main() {
-	mux := http.NewServeMux()
+	router := internal.Router{Mux: http.NewServeMux()}
 	port := "8080"
 	server := &http.Server{
 		Addr:    ":" + port,
-		Handler: mux,
+		Handler: router.Mux,
 	}
-	mux.Handle("/", http.FileServer(http.Dir(".")))
+	staticDir := "./public/"
+	router.Mux.Handle("/", http.FileServer(http.Dir(staticDir)))
 	log.Fatal(server.ListenAndServe())
 }
