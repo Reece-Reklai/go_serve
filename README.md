@@ -38,6 +38,8 @@
 5) client connection CONNECTS.
 6) Data transmission occurs (read/write data over the connection).
 7) closes connection.
+### Extra Info
+1) Readiness endpoints are commonly used by external systems to check if our server is ready to receive traffic
 # Terminal Linux Commands
 #### sudo lsof -i tcp:8080
 - super user check list of open files including those of TCP ports 8080
