@@ -17,7 +17,7 @@
         - GET /api/videos/{id} **Gets individual**
         - POST /api/videos **Server responsible provides the new id in its response**
         - PUT /api/videos/{id} **Update a video**
-        - DELETE /api/video/{} **Delete a video**
+        - DELETE /api/video/{id} **Delete a video**
 ##### https://restfulapi.net/
 - **Socket** is the fundamental abstraction for network communication.
     - Acts as an interface between application and transport layer (OSI model).
