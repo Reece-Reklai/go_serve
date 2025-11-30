@@ -11,6 +11,14 @@
 - **Stack** - local variables and functions calls are stored.
 - **Heap** - user allocated memory is stored.
 ## HTTP Fundamentals
+- **RESTAPI** design
+    - Resource Plural naming for api endpoints (example: videos instead of video)
+        - GET /api/videos (Get all videos) **Get all videos**
+        - GET /api/videos/{id} **Gets individual**
+        - POST /api/videos **Server responsible provides the new id in its response**
+        - PUT /api/videos/{id} **Update a video**
+        - DELETE /api/video/{} **Delete a video**
+##### https://restfulapi.net/
 - **Socket** is the fundamental abstraction for network communication.
     - Acts as an interface between application and transport layer (OSI model).
     - "Special" type of file that supports read and write.

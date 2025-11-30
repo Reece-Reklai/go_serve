@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,12 +11,14 @@ import (
 
 	"github.com/Reece-Reklai/go_serve/internal/database"
 	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	databaseQuery  *database.Queries
+	platform       string
 }
 
 type User struct {
@@ -42,24 +43,11 @@ func (cfg *apiConfig) resetMetric() {
 	cfg.fileserverHits.Swap(int32(0))
 }
 
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) error {
-	response, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	w.Write(response)
-	return nil
-}
-
-func respondWithError(w http.ResponseWriter, code int, msg string) error {
-	return respondWithJSON(w, code, map[string]string{"error": msg})
-}
-
 func main() {
+	godotenv.Load(".env")
 	var apiCfg apiConfig
 	dbURL := os.Getenv("DB_URL")
+	apiCfg.platform = os.Getenv("PLATFORM")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		fmt.Println("failed to open database connection")

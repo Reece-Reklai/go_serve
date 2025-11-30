@@ -6,10 +6,30 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/Reece-Reklai/go_serve/internal/database"
+	"github.com/google/uuid"
+	_ "github.com/lib/pq"
 )
 
 type Router struct {
 	Mux *http.ServeMux
+}
+
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) error {
+	response, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	w.Write(response)
+	return nil
+}
+
+func respondWithError(w http.ResponseWriter, code int, msg string) error {
+	return respondWithJSON(w, code, map[string]string{"error": msg})
 }
 
 func (router *Router) handlers(apiCfg *apiConfig, staticDir string, headerMethod map[string]string, endPoints map[string]string) {
@@ -22,35 +42,76 @@ func (router *Router) handlers(apiCfg *apiConfig, staticDir string, headerMethod
 		w.WriteHeader(200)
 		io.WriteString(w, "OK")
 	})
-	router.Mux.HandleFunc(fmt.Sprintf("%s %s%s", headerMethod["POST"], endPoints["api"], "/validate_chirp"), func(w http.ResponseWriter, req *http.Request) {
+	router.Mux.HandleFunc(fmt.Sprintf("%s %s%s", headerMethod["POST"], endPoints["api"], "/users"), func(w http.ResponseWriter, req *http.Request) {
 		defer req.Body.Close()
-		chirpBody := struct {
-			Body string `json:"body"`
+		chirpUser := struct {
+			Email string `json:"email"`
+		}{}
+		userJSON := struct {
+			ID        uuid.UUID `json:"id"`
+			CreatedAt time.Time `json:"created_at"`
+			UpdatedAt time.Time `json:"updated_at"`
+			Email     string    `json:"email"`
+		}{}
+		body, err := io.ReadAll(req.Body)
+		if err != nil {
+			respondWithError(w, 400, "could not read request body")
+			return
+		}
+		err = json.Unmarshal(body, &chirpUser)
+		if err != nil {
+			respondWithError(w, 400, "could not read request body")
+			return
+		}
+		user, err := apiCfg.databaseQuery.CreateUser(req.Context(), database.CreateUserParams{ID: uuid.New(), Email: chirpUser.Email})
+		if err != nil {
+			respondWithError(w, 500, "failed to create user")
+			return
+		}
+		userJSON.ID = user.ID
+		userJSON.CreatedAt = user.CreatedAt
+		userJSON.UpdatedAt = user.UpdatedAt
+		userJSON.Email = user.Email
+		response, err := json.Marshal(userJSON)
+		if err != nil {
+			respondWithError(w, 400, "failed to translate into bytes")
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(201)
+		w.Write(response)
+	})
+	router.Mux.HandleFunc(fmt.Sprintf("%s %s%s", headerMethod["POST"], endPoints["api"], "/chirps"), func(w http.ResponseWriter, req *http.Request) {
+		defer req.Body.Close()
+		chirpProfanity := struct {
+			Body   string    `json:"body"`
+			UserID uuid.UUID `json:"user_id"`
 		}{}
 		chirpClean := struct {
-			Body string `json:"cleaned_body"`
+			Body   string    `json:"body"`
+			UserID uuid.UUID `json:"user_id"`
 		}{}
 
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
-			respondWithError(w, 400, "could not read request")
+			respondWithError(w, 400, "could not read request body")
 			return
 		}
 
-		err = json.Unmarshal(body, &chirpBody)
+		err = json.Unmarshal(body, &chirpProfanity)
 		if err != nil {
 			respondWithError(w, 400, "could not unmarshal request")
 			return
 		}
 
-		if len(chirpBody.Body) > 140 {
-			respondWithError(w, 400, "chirp is too long")
+		if len(chirpProfanity.Body) > 100 {
+			respondWithError(w, 400, "chirp is too long (100 characters)")
 			return
 		}
 
 		var createWord string
 		valid := true
-		wordSlice := strings.Split(chirpBody.Body, " ")
+		wordSlice := strings.Split(chirpProfanity.Body, " ")
 		for index := range wordSlice {
 			switch strings.ToLower(wordSlice[index]) {
 			case "kerfuffle":
@@ -73,11 +134,21 @@ func (router *Router) handlers(apiCfg *apiConfig, staticDir string, headerMethod
 		}
 		if valid == false {
 			chirpClean.Body = createWord
-			respondWithJSON(w, 200, chirpClean)
+			chirpClean.UserID = chirpProfanity.UserID
+			_, err := apiCfg.databaseQuery.CreateChirp(req.Context(), database.CreateChirpParams{Body: chirpClean.Body, UserID: chirpClean.UserID})
+			if err != nil {
+				respondWithError(w, 500, "failed to create chirp")
+			}
+			respondWithJSON(w, 201, chirpClean)
 			return
 		}
-		chirpClean.Body = chirpBody.Body
-		respondWithJSON(w, 200, chirpClean)
+		chirpClean.Body = chirpProfanity.Body
+		chirpClean.UserID = chirpProfanity.UserID
+		_, err = apiCfg.databaseQuery.CreateChirp(req.Context(), database.CreateChirpParams{Body: chirpClean.Body, UserID: chirpClean.UserID})
+		if err != nil {
+			respondWithError(w, 500, "failed to create chirp")
+		}
+		respondWithJSON(w, 201, chirpClean)
 
 	})
 	// Admin Endpoints --------------------------------------------------------------------------------------------------------------------------------
@@ -87,7 +158,17 @@ func (router *Router) handlers(apiCfg *apiConfig, staticDir string, headerMethod
 		io.WriteString(w, metricHTML)
 	})
 	router.Mux.HandleFunc(fmt.Sprintf("%s %s%s", headerMethod["POST"], endPoints["admin"], "/reset"), func(w http.ResponseWriter, req *http.Request) {
+		if apiCfg.platform != "dev" {
+			respondWithError(w, 403, "something went wrong")
+			return
+		}
 		apiCfg.resetMetric()
+		err := apiCfg.databaseQuery.DeleteAllUsers(req.Context())
+		if err != nil {
+			respondWithError(w, 500, "something went wrong")
+			return
+		}
 		w.WriteHeader(200)
+		io.WriteString(w, "OK")
 	})
 }
