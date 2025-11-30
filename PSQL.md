@@ -1,4 +1,4 @@
-PSQL commands (\q = quit psql)
+# PSQL COMMANDS (\q = quit psql)
 
 General
 
@@ -145,7 +145,7 @@ Variables
   \set [NAME [VALUE]]    set internal variable, or list all if no parameters
   \unset NAME            unset (delete) internal variable
 
-SQL Common Commands
+# SQL COMMAND COMMANDS
 
   ABORT                            CREATE USER MAPPING
   ALTER AGGREGATE                  CREATE VIEW
