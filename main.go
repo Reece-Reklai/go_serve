@@ -19,6 +19,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	databaseQuery  *database.Queries
 	platform       string
+	secret         string
 }
 
 type User struct {
@@ -48,13 +49,14 @@ func main() {
 	var apiCfg apiConfig
 	dbURL := os.Getenv("DB_URL")
 	apiCfg.platform = os.Getenv("PLATFORM")
+	apiCfg.secret = os.Getenv("SECRET")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		fmt.Println("failed to open database connection")
 	}
 	dbQueries := database.New(db)
 	apiCfg.databaseQuery = dbQueries
-	staticDir := "./public/"
+	const staticDir = "./public/"
 	headerMethod := map[string]string{
 		"GET":    "GET",
 		"POST":   "POST",
@@ -66,7 +68,7 @@ func main() {
 		"admin": "/admin",
 	}
 	router := Router{Mux: http.NewServeMux()}
-	port := "8080"
+	const port = "8080"
 	server := &http.Server{
 		Addr:    ":" + port,
 		Handler: router.Mux,

@@ -1,21 +1,40 @@
 package test
 
-// TestHelloName calls greetings.Hello with a name, checking
-// for a valid return value.
-// func TestHelloName(t *testing.T) {
-// 	name := "Gladys"
-// 	want := regexp.MustCompile(`\b` + name + `\b`)
-// 	msg, err := Hello("Gladys")
-// 	if !want.MatchString(msg) || err != nil {
-// 		t.Errorf(`Hello("Gladys") = %q, %v, want match for %#q, nil`, msg, err, want)
-// 	}
-// }
+import (
+	"strings"
+	"testing"
+	"time"
 
-// TestHelloEmpty calls greetings.Hello with an empty string,
-// // checking for an error.
-// func TestHelloEmpty(t *testing.T) {
-// 	msg, err := Hello("")
-// 	if msg != "" || err == nil {
-// 		t.Errorf(`Hello("") = %q, %v, want "", error`, msg, err)
-// 	}
-// }
+	"github.com/Reece-Reklai/go_serve/internal/auth"
+	"github.com/google/uuid"
+)
+
+// Test Conditions (JWT):
+// 1) invalid signed string
+// 2) invalid token secret
+// 3) token expires
+func TestAuthJWT(t *testing.T) {
+	tokenSecret := "hello"
+	timeExpiredIn := time.Duration(1) * time.Second
+	signedString, err := auth.MakeJWT(uuid.New(), tokenSecret, timeExpiredIn)
+	if err != nil {
+		t.Errorf(`Json Web token was not created: %v\n`, err)
+	}
+	// Purposely Fail Test Conditions Below:
+	// invalidSignedString := "random"
+	// invalidTokenSecret := "random"
+	// time.Sleep(1 * time.Second)
+	_, err = auth.ValidateJWT(signedString, tokenSecret)
+
+	if err != nil {
+		t.Errorf(`Validation Failed: %v\n`, err)
+	}
+}
+
+func TestStripStringOnHeaderAuth(t *testing.T) {
+	bearerToken := "Bearer TOKEN_STRING"
+	strip := strings.Split(bearerToken, " ")
+	if strip[1] != "TOKEN_STRING" {
+		t.Error("Word was not found")
+	}
+}

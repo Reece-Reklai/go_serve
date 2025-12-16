@@ -18,6 +18,14 @@
         - POST /api/videos **Server responsible provides the new id in its response**
         - PUT /api/videos/{id} **Update a video**
         - DELETE /api/video/{id} **Delete a video**
+- **JWT** design
+    - Client Loing
+    - JWT + user_id created and sent back to client
+    - Client sends JWT in all future requests
+    - On every authentication request: server validates JWT
+- **Token** concepts
+    - Access Token is what gives a user the ability to access their resource over a webserver without having to login every time
+    - Refresh Token is used to give user the ability to obtain new access tokens
 ##### https://restfulapi.net/
 - **Socket** is the fundamental abstraction for network communication.
     - Acts as an interface between application and transport layer (OSI model).

@@ -9,5 +9,6 @@ SELECT * FROM chirps Where id = $1;
 -- name: GetAllChirps :many
 SELECT * FROM chirps;
 
--- name: DeleteUserChirp :exec
-DELETE FROM chirps WHERE id = $1;
+-- name: DeleteChirpByUserID :exec
+DELETE FROM chirps WHERE id = $1 AND user_id = $2;
+
